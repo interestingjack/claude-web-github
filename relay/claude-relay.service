@@ -1,0 +1,13 @@
+[Unit]
+Description=Claude Code web relay
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/claude-relay
+ExecStart=/usr/bin/node /opt/claude-relay/relay.js
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target

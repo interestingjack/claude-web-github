@@ -1,0 +1,14 @@
+{
+  "name": "claude-web-agent",
+  "version": "1.0.0",
+  "private": true,
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "js-yaml": "4.1.0",
+    "ws": "8.18.0"
+  }
+}

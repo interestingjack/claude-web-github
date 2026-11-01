@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Claude">
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#262624" media="(prefers-color-scheme: dark)">
+<title>Claude</title>
+<meta name="session-authenticated" content="__SESSION_AUTH__">
+<script>
+  if (document.querySelector('meta[name="session-authenticated"]').content === 'true') {
+    const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/client`);
+    const boot = { socket, messages: [] };
+    socket.onmessage = event => boot.messages.push(event.data);
+    window.__relayBoot = boot;
+  }
+</script>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/assets/styles.css">
+<script defer src="/assets/app.js"></script>
+</head>
+<body>
+<div id="sbfill"></div>
+
+<div id="login" class="hidden">
+  <form id="loginForm">
+    <div class="logo">Claude</div>
+    <input id="pw" type="password" placeholder="访问密码" autocomplete="current-password">
+    <button class="btn primary" type="submit">登录</button>
+    <div class="err" id="loginErr"></div>
+  </form>
+</div>
+
+<div id="app" class="hidden">
+  <div class="top">
+    <button class="icon-btn" id="menuBtn" aria-label="对话列表">
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+    </button>
+    <div class="titles">
+      <div class="t1" id="title">Claude</div>
+      <div class="t2" id="subtitle"></div>
+    </div>
+    <div class="top-actions">
+    <button id="ctx" aria-label="上下文与账户用量" aria-controls="ctxPopover" aria-expanded="false" aria-haspopup="dialog" class="hidden">
+      <svg viewBox="0 0 36 36"><circle class="track" cx="18" cy="18" r="15" fill="none" stroke-width="4"/>
+        <circle class="val" id="ctxVal" cx="18" cy="18" r="15" fill="none" stroke-width="4" stroke-linecap="round"
+          stroke-dasharray="94.25" stroke-dashoffset="94.25"/></svg>
+    </button>
+    <button class="icon-btn" id="moreBtn" aria-label="更多">
+      <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>
+    </button>
+    </div>
+  </div>
+  <div id="banner" class="hidden"></div>
+  <div id="msgs"><div class="thread" id="thread"></div></div>
+  <div class="composer">
+    <div id="pastedTexts" class="pasted-texts hidden" aria-label="待发送的文本"></div>
+    <div id="attachments" class="attachments hidden" aria-label="待发送的附件"></div>
+    <div id="composerNotice" class="composer-notice hidden" role="status"><span id="composerNoticeText"></span><button id="sendRetry" type="button" class="hidden">重试发送</button></div>
+    <div class="box">
+      <button id="attachBtn" type="button" aria-label="添加图片或文件"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+      <input id="attachmentFiles" type="file" multiple class="hidden">
+      <textarea id="msg" rows="1" placeholder="给 Claude 发消息" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+      <button id="sendBtn" aria-label="发送" disabled>
+        <svg id="sendIcon" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="scrim"></div>
+<div id="drawer">
+  <div class="dhead">
+    <div class="brand">Claude</div>
+    <button class="icon-btn" id="refreshBtn" aria-label="刷新">
+      <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
+    </button>
+  </div>
+  <div class="dtabs" id="dtabs">
+    <button data-tab="chat" class="on">对话</button>
+    <button data-tab="rp">角色扮演</button>
+  </div>
+  <div class="pane hidden" id="paneRp">
+    <div class="rpbar">
+      <button class="btn" id="rpImportBtn">导入文件</button>
+      <button class="btn" id="rpPasteBtn">粘贴导入</button>
+      <button class="btn" id="rpSettingsBtn">人设 / 世界书</button>
+    </div>
+    <input type="file" id="rpFile" accept=".png,.json,image/png,application/json" class="hidden">
+    <div id="rpScroll">
+      <div class="cards" id="cardGrid"></div>
+      <div id="rpRecent"></div>
+    </div>
+  </div>
+  <div class="pane" id="paneChat">
+  <button id="newChatBtn"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>新对话</button>
+  <div class="newform hidden" id="newForm">
+    <label for="cwd">工作目录</label>
+    <button class="btn folder-browse" id="browseCwd" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10H3z"/></svg>浏览电脑文件夹<span aria-hidden="true">›</span></button>
+    <input id="cwd" type="text" aria-label="工作目录路径（也可手动输入）" placeholder="也可手动输入完整路径" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <div class="recent" id="recent"></div>
+    <div class="row">
+      <button class="btn" id="newCancel">取消</button>
+      <button class="btn primary" id="newGo">开始</button>
+    </div>
+  </div>
+  <div class="chips" id="chips">
+    <button data-src="all" class="on">全部</button>
+    <button data-src="desktop">桌面端</button>
+    <button data-src="cli">终端</button>
+    <button data-src="other">其他</button>
+  </div>
+  <div id="convList"></div>
+  </div>
+  <div class="dfoot">
+    <span class="st"><span class="dot off" id="agentDot"></span><span id="agentText">电脑未连接</span></span>
+    <button id="logoutBtn">退出登录</button>
+  </div>
+</div>
+
+<div id="folderSheet" class="msheet hidden" role="dialog" aria-modal="true" aria-labelledby="folderTitle">
+  <div class="panel folder-panel">
+    <div class="folder-toolbar">
+      <button class="icon-btn" id="folderUp" aria-label="上一级"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+      <button class="folder-home" id="folderHome" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></svg>位置首页</button>
+      <button class="icon-btn" id="folderClose" aria-label="关闭文件夹选择"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="folder-heading"><h3 id="folderTitle">选择工作目录</h3><div id="folderPath"></div></div>
+    <div class="folder-scroll" id="folderScroll">
+      <div id="folderStatus" role="status" aria-live="polite"></div>
+      <button class="btn hidden" id="folderRetry" type="button">重新加载</button>
+      <div id="folderItems" aria-label="文件夹"></div>
+      <button class="btn folder-more hidden" id="folderMore" type="button">加载更多</button>
+    </div>
+    <footer class="folder-footer"><button class="btn primary" id="folderChoose" type="button" disabled>选择此文件夹</button></footer>
+  </div>
+</div>
+
+<div id="ctxPopover" class="context-popover hidden" role="dialog" aria-label="上下文与账户用量">
+  <div class="usage-title"><strong>用量</strong><button id="usageRefresh" aria-label="刷新账户用量" title="刷新账户用量">↻</button></div>
+  <div class="usage-section">上下文</div>
+  <div class="usage-card">
+    <div class="context-heading"><span>上下文窗口</span><strong id="ctxPercent"></strong></div>
+    <div class="context-meter" id="contextMeter" role="progressbar" aria-label="上下文已使用" aria-valuemin="0" aria-valuemax="100"><div id="ctxMeter"></div></div>
+    <div id="ctxAmount"></div><div id="ctxRemaining"></div>
+  </div>
+  <div class="usage-section">套餐用量</div>
+  <div class="usage-card">
+    <div class="context-heading"><span>当前会话 · 5 小时</span><strong id="fiveHourPercent">待获取</strong></div>
+    <div class="context-meter" id="fiveHourMeter" role="progressbar" aria-label="5 小时额度已使用" aria-valuemin="0" aria-valuemax="100"><div></div></div>
+    <div class="usage-reset" id="fiveHourReset">读取中…</div>
+  </div>
+  <div class="usage-card">
+    <div class="context-heading"><span>本周 · 所有模型</span><strong id="sevenDayPercent">待获取</strong></div>
+    <div class="context-meter" id="sevenDayMeter" role="progressbar" aria-label="本周额度已使用" aria-valuemin="0" aria-valuemax="100"><div></div></div>
+    <div class="usage-reset" id="sevenDayReset">读取中…</div>
+  </div>
+  <div id="usageNote" role="status">约每分钟更新</div>
+</div>
+
+<div id="moreMenu" class="pop hidden">
+  <button data-act="context">查看上下文 <span>📊</span></button>
+  <button data-act="compact">压缩上下文 <span>🗜️</span></button>
+  <div class="sep"></div>
+  <div class="hint">思考强度（同时保存为新对话的默认值）</div>
+  <button data-effort="low">low · 最快</button>
+  <button data-effort="medium">medium · 默认</button>
+  <button data-effort="high">high</button>
+  <button data-effort="xhigh">xhigh</button>
+  <button data-effort="max">max · 最深</button>
+  <div class="sep"></div>
+  <button data-act="close" class="danger">结束这个对话</button>
+</div>
+
+<div id="sheet" class="hidden">
+  <div class="panel">
+    <div class="quote" id="sheetQuote"></div>
+    <button id="sheetCopy">复制</button>
+    <button id="sheetRewind">从这里重新编辑<span class="sub">回到这条消息之前，内容放回输入框（已改动的文件不会撤销）</span></button>
+    <button id="sheetCancel">取消</button>
+  </div>
+</div>
+
+<div id="viewer" class="hidden">
+  <div class="top">
+    <button class="icon-btn" id="viewerBack" aria-label="返回"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="titles"><div class="t1" id="viewerTitle"></div><div class="t2" id="viewerDir"></div></div>
+    <button class="icon-btn" id="viewerMode" aria-label="切换源码"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg></button>
+  </div>
+  <div class="vbody" id="viewerBody"></div>
+  <footer>
+    <button class="btn" id="downloadFile" disabled>下载文件</button>
+    <button class="btn" id="copyPath">复制路径</button>
+    <button class="btn primary" id="copyContent">复制内容</button>
+  </footer>
+</div>
+
+<div id="cardSheet" class="msheet hidden">
+  <div class="panel">
+    <div class="cardhead">
+      <div class="av lg" id="csAv"></div>
+      <div class="nm" id="csName"></div>
+    </div>
+    <div class="row"><button class="btn" id="csAvatar">上传头像</button></div>
+    <input type="file" id="rpAvatarFile" accept="image/png,image/jpeg,image/webp,image/gif,image/heic,image/heif" class="hidden">
+    <div class="notes md" id="csNotes"></div>
+    <button class="linkbtn hidden" id="csMore">展开作者说明</button>
+    <div class="sub">开场白</div>
+    <div class="gchips" id="csGreetings"></div>
+    <div class="row">
+      <button class="btn primary" id="csStart">开始扮演</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="csBook">角色世界书</button>
+      <button class="btn" id="csDelete">删除卡片</button>
+    </div>
+    <div class="sub" id="csHistTitle">之前的扮演</div>
+    <div id="csHist"></div>
+  </div>
+</div>
+
+<div id="rpEditSheet" class="msheet hidden" role="dialog" aria-modal="true" aria-labelledby="rpEditTitle">
+  <div class="panel">
+    <h3 id="rpEditTitle">编辑角色回复</h3>
+    <textarea id="rpEditText" rows="10" aria-label="回复原文" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+    <div class="sub" id="rpEditHint">保存后会用于后续对话。</div>
+    <div id="rpEditError" role="alert"></div>
+    <div class="row">
+      <button class="btn" id="rpEditCancel">取消</button>
+      <button class="btn primary" id="rpEditSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="setSheet" class="msheet hidden">
+  <div class="panel">
+    <h3>人设与世界书</h3>
+    <div class="sub">我的名字（{{user}}）</div>
+    <input type="text" id="psName">
+    <div class="sub">我的设定</div>
+    <textarea id="psDesc" placeholder="你在故事里是谁，可以留空"></textarea>
+    <div class="row"><button class="btn primary" id="psSave">保存人设</button></div>
+    <div class="sub">全局世界书（打开后对所有角色生效）</div>
+    <div id="gbList"></div>
+  </div>
+</div>
+
+<div id="pasteSheet" class="msheet hidden">
+  <div class="panel">
+    <h3>粘贴角色卡 / 世界书</h3>
+    <div class="sub">把角色卡或世界书的 JSON 文本粘贴到下面</div>
+    <textarea id="pasteText" placeholder="长按这里 → 粘贴" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+    <div class="row">
+      <button class="btn" id="pasteCancel">取消</button>
+      <button class="btn primary" id="pasteGo">导入</button>
+    </div>
+  </div>
+</div>
+
+<div id="bookSheet" class="msheet hidden">
+  <div class="panel">
+    <h3 id="bkName"></h3>
+    <div class="sub">关掉的条目不会再发给 Claude。常驻条目每轮都会带上，其他的按关键词触发。</div>
+    <div id="bkEntries"></div>
+  </div>
+</div>
+
+<div id="bookEntrySheet" class="msheet hidden" role="dialog" aria-modal="true" aria-labelledby="bookEntryTitle">
+  <div class="panel book-entry-panel">
+    <div class="book-entry-head"><h3 id="bookEntryTitle"></h3><button class="icon-btn" id="bookEntryClose" aria-label="关闭条目内容"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+    <div class="sub" id="bookEntryMeta"></div>
+    <div id="bookEntryStatus" role="status" aria-live="polite"></div>
+    <button class="btn hidden" id="bookEntryRetry" type="button">重新加载条目</button>
+    <pre id="bookEntryContent" tabindex="0" aria-label="世界书条目完整内容"></pre>
+    <div class="row"><button class="btn primary" id="bookEntryCopy" type="button">复制完整内容</button><button class="btn" id="bookEntryBack" type="button">返回条目列表</button></div>
+  </div>
+</div>
+
+<div id="toast" class="hidden"></div>
+
+
+</body>
+</html>

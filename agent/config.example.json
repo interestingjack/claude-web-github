@@ -1,0 +1,11 @@
+{
+  "relayUrl": "wss://YOUR_SERVER_IP:8765/ws/agent",
+  "agentToken": "CHANGE_ME_LONG_RANDOM_TOKEN",
+  "caFile": "ca.crt",
+  "claudeCommand": "claude",
+  "defaultCwd": "C:/path/to/your/project",
+  "keepEnv": [
+    "CLAUDE_CODE_USE_POWERSHELL_TOOL"
+  ],
+  "rpSystemPromptFiles": []
+}

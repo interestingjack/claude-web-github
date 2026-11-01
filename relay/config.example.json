@@ -1,0 +1,8 @@
+{
+  "port": 8765,
+  "password": "CHANGE_ME_WEB_LOGIN_PASSWORD",
+  "agentToken": "CHANGE_ME_LONG_RANDOM_TOKEN",
+  "cert": "certs/server.crt",
+  "key": "certs/server.key",
+  "ca": "certs/ca.crt"
+}
